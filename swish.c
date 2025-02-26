@@ -14,7 +14,6 @@
 #define CMD_LEN 512
 #define PROMPT "@> "
 
-
 int main(int argc, char **argv) {
     // Task 4: Set up shell to ignore SIGTTIN, SIGTTOU when put in background
     // You should adapt this code for use in run_command().
@@ -60,6 +59,11 @@ int main(int argc, char **argv) {
         if (strcmp(first_token, "pwd") == 0) {
             // TODO Task 1: Print the shell's current working directory
             // Use the getcwd() system call
+            if (getcwd(cmd, sizeof(cmd)) != NULL) {
+                printf("Current working dir: %s\n", cmd);
+            } else {
+                perror("getcwd");
+            }
         }
 
         else if (strcmp(first_token, "cd") == 0) {
