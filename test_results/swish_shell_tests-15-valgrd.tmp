@@ -1,0 +1,6 @@
+==1154== Memcheck, a memory error detector
+==1154== Copyright (C) 2002-2017, and GNU GPL'd, by Julian Seward et al.
+==1154== Using Valgrind-3.18.1 and LibVEX; rerun with -h for copyright info
+==1154== Command: ./swish
+==1154== Parent PID: 1031
+==1154== 

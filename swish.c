@@ -72,11 +72,16 @@ int main(int argc, char **argv) {
             // If the user supplied an argument (token at index 1), change to that directory
             // Otherwise, change to the home directory by default
             // This is available in the HOME environment variable (use getenv())
-            if (tokens.length > 1) {
-                if (chdir(first_token) != 0) {
+
+            const char *second_token = strvec_get(&tokens, 1);
+
+            // If the user supplied an argument (token at index 1), change to that directory
+            if (second_token != NULL) {
+                if (chdir(second_token) != 0) {
                     perror("chdir");
                 }
             } else {
+                // Otherwise, change to the home directory by default
                 if (chdir(getenv("HOME")) != 0) {
                     perror("chdir");
                 }
