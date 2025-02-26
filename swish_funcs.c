@@ -19,11 +19,28 @@
 #define MAX_ARGS 10
 
 int tokenize(char *s, strvec_t *tokens) {
-    // TODO Task 0: Tokenize string s
-    // Assume each token is separated by a single space (" ")
-    // Use the strtok() function to accomplish this
+    // Task 0: Tokenize string s
+    //  Assume each token is separated by a single space (" ")
+    //  Use the strtok() function to accomplish this
+    //  Return 0 on success, -1 on error
+    char *word = strtok(s, " ");
+
+    // Check if string is empty
+    if (word == NULL) {
+        fprintf(stderr, "input string is empty");
+        return -1;
+    }
+
     // Add each token to the 'tokens' parameter (a string vector)
-    // Return 0 on success, -1 on error
+    while (word != NULL) {
+        if (strvec_add(tokens, word) == -1) {
+            perror("failure to tokenize");
+            return -1;
+        }
+
+        word = strtok(NULL, " ");
+    }
+
     return 0;
 }
 
