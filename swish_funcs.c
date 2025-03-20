@@ -214,10 +214,7 @@ int resume_job(strvec_t *tokens, job_list_t *jobs, int is_foreground) {
             job_list_remove(jobs, job_index);
         }
         tcsetpgrp(STDIN_FILENO, getpid());
-    } else {
-        printf("Job [%d] running in background\n", job_index);
-    }
-
+    } 
     // Step 6: Return terminal control to the shell
     tcsetpgrp(STDIN_FILENO, getpid());
 

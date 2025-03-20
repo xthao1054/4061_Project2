@@ -186,7 +186,6 @@ int main(int argc, char **argv) {
 
                 if (is_background) {
                     // Task 6: Add background job to job list and do NOT wait for it
-                    printf("Started background job [%d] %s\n", child_pid, tokens.data[0]);
                     job_list_add(&jobs, child_pid, tokens.data[0], BACKGROUND);
                 } else {
                     // Foreground execution
