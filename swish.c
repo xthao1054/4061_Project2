@@ -139,30 +139,6 @@ int main(int argc, char **argv) {
         }
 
         else {
-            // TODO Task 2: If the user input does not match any built-in shell command,
-            // treat the input as a program name and command-line arguments
-            // USE THE run_command() FUNCTION DEFINED IN swish_funcs.c IN YOUR IMPLEMENTATION
-            // You should take the following steps:
-            //   1. Use fork() to spawn a child process
-            //   2. Call run_command() in the child process
-            //   2. In the parent, use waitpid() to wait for the program to exit
-
-            // TODO Task 4: Set the child process as the target of signals sent to the terminal
-            // via the keyboard.
-            // To do this, call 'tcsetpgrp(STDIN_FILENO, <child_pid>)', where child_pid is the
-            // child's process ID just returned by fork(). Do this in the parent process.
-
-            // TODO Task 5: Handle the issue of foreground/background terminal process groups.
-            // Do this by taking the following steps in the shell (parent) process:
-            // 1. Modify your call to waitpid(): Wait specifically for the child just forked, and
-            //    use WUNTRACED as your third argument to detect if it has stopped from a signal
-            // 2. After waitpid() has returned, call tcsetpgrp(STDIN_FILENO, <pid>) where pid is
-            //    the process ID of the shell process (use getpid() to obtain it)
-            // 3. If the child status was stopped by a signal, add it to 'jobs', the
-            //    the terminal's jobs list.
-            // You can detect if this has occurred using WIFSTOPPED on the status
-            // variable set by waitpid()
-
             // TODO Task 6: If the last token input by the user is "&", start the current
             // command in the background.
             // 1. Determine if the last token is "&". If present, use strvec_take() to remove
@@ -171,6 +147,80 @@ int main(int argc, char **argv) {
             //    use waitpid() to interact with the newly spawned child process.
             // 3. Add a new entry to the jobs list with the child's pid, program name,
             //    and status BACKGROUND.
+            int is_background = 0;
+            if (tokens.length > 0 && strcmp(strvec_get(&tokens, tokens.length - 1), "&") == 0) {
+                is_background = 1;
+                strvec_take(&tokens, tokens.length - 1);    // Remove "&" from tokens
+            }
+            // TODO Task 2: If the user input does not match any built-in shell command,
+            // treat the input as a program name and command-line arguments
+            // USE THE run_command() FUNCTION DEFINED IN swish_funcs.c IN YOUR IMPLEMENTATION
+            // You should take the following steps:
+            //   1. Use fork() to spawn a child process
+            //   2. Call run_command() in the child process
+            //   2. In the parent, use waitpid() to wait for the program to exit
+            // TODO Task 4: Set the child process as the target of signals sent to the terminal
+            // via the keyboard.
+            // To do this, call 'tcsetpgrp(STDIN_FILENO, <child_pid>)', where child_pid is the
+            // child's process ID just returned by fork(). Do this in the parent process.
+            pid_t child_pid = fork();
+            if (child_pid == -1) {
+                perror("fork");
+
+            } else if (child_pid == 0) {
+                // Child Process
+                if (is_background) {
+                    // Task 6: Set child process in its own process group
+                    setpgid(0, 0);
+                }
+
+                // Ensure the child terminates on failure
+                if (run_command(&tokens) == -1) {
+                    exit(EXIT_FAILURE);
+                }
+
+            } else {
+                // Parent Process
+                // Ensure the child process runs in its own process group
+                setpgid(child_pid, child_pid);
+
+                if (is_background) {
+                    // Task 6: Add background job to job list and do NOT wait for it
+                    printf("Started background job [%d] %s\n", child_pid, tokens.data[0]);
+                    job_list_add(&jobs, child_pid, tokens.data[0], BACKGROUND);
+                } else {
+                    // Foreground execution
+                    // Task 4: Set the child process as the foreground process group
+                    tcsetpgrp(STDIN_FILENO, child_pid);
+
+                    // TODO Task 5: Handle the issue of foreground/background terminal process
+                    // groups. Do this by taking the following steps in the shell (parent) process:
+                    // 1. Modify your call to waitpid(): Wait specifically for the child just
+                    // forked, and use WUNTRACED as your third argument to detect if it has stopped
+                    // from a signal
+                    // 2. After waitpid() has returned, call tcsetpgrp(STDIN_FILENO, <pid>) where
+                    // pid is
+                    //    the process ID of the shell process (use getpid() to obtain it)
+                    // 3. If the child status was stopped by a signal, add it to 'jobs', the
+                    //    the terminal's jobs list.
+                    // You can detect if this has occurred using WIFSTOPPED on the status
+                    // variable set by waitpid()
+
+                    // Wait for child to finish
+                    int status;
+                    waitpid(child_pid, &status, WUNTRACED);
+
+                    // If the child was stopped, reset the shell as foreground process
+                    if (WIFSTOPPED(status)) {
+                        tcsetpgrp(STDIN_FILENO, getpid());
+                        // Add the stopped job to the job list
+                        job_list_add(&jobs, child_pid, tokens.data[0], STOPPED);
+                    }
+
+                    // Restore the shell itself as the foreground process group
+                    tcsetpgrp(STDIN_FILENO, getpid());
+                }
+            }
         }
 
         strvec_clear(&tokens);

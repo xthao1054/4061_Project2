@@ -1,2 +1,0 @@
-@> wc -c -m -l -L -w < test_cases/resources/gatsby.txt
-@> exit
