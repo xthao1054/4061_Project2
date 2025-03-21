@@ -1,3 +1,0 @@
-gatsby.txt
-quote.txt
-slow_write.c

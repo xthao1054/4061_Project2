@@ -72,13 +72,19 @@ int main(int argc, char **argv) {
         else if (strcmp(first_token, "cd") == 0) {
             // Change the shell's current working directory
             const char *second_token = strvec_get(&tokens, 1);
+            if (strvec_get(&tokens, 1) == NULL) {
+                perror("strvec_get");
+            }
 
             if (second_token != NULL) {
                 if (chdir(second_token) != 0) {
                     perror("chdir");
                 }
             } else {
-                if (chdir(getenv("HOME")) != 0) {
+                char *home = getenv("HOME");
+                if (!home) {
+                    fprintf(stderr, "HOME environment variable not set\n");
+                } else if (chdir(home) != 0) {
                     perror("chdir");
                 }
             }
@@ -138,9 +144,13 @@ int main(int argc, char **argv) {
             // If the last token input by the user is "&", start the current
             // command in the background.
             int is_background = 0;
+            if (strvec_get(&tokens, tokens.length - 1) == NULL) {
+                perror("strvec_get");
+            }
             if (tokens.length > 0 && strcmp(strvec_get(&tokens, tokens.length - 1), "&") == 0) {
                 is_background = 1;
-                strvec_take(&tokens, tokens.length - 1);    // Remove "&" from tokens
+                // Remove "&" from tokens
+                strvec_take(&tokens, tokens.length - 1);
             }
 
             // If the user input does not match any built-in shell command,
@@ -152,7 +162,9 @@ int main(int argc, char **argv) {
                 // Child Process
                 if (is_background) {
                     // Set child process in its own process group
-                    setpgid(0, 0);
+                    if (setpgid(0, 0) == -1) {
+                        perror("setpgid");
+                    }
                 }
 
                 // Ensure the child terminates on failure
@@ -162,31 +174,46 @@ int main(int argc, char **argv) {
             } else {
                 // Parent Process
                 // Ensure the child process runs in its own process group
-                setpgid(child_pid, child_pid);
+                if (setpgid(child_pid, child_pid) == -1) {
+                    perror("setpgid");
+                }
 
                 if (is_background) {
                     // Add background job to job list and do NOT wait for it
-                    job_list_add(&jobs, child_pid, tokens.data[0], BACKGROUND);
+                    if (job_list_add(&jobs, child_pid, tokens.data[0], BACKGROUND) == -1) {
+                        perror("job_list_add");
+                    }
                 } else {
                     // Foreground execution
                     // Set the child process as the foreground process group
-                    tcsetpgrp(STDIN_FILENO, child_pid);
+                    if (tcsetpgrp(STDIN_FILENO, child_pid) == -1) {
+                        perror("tcsetpgrp");
+                    }
 
                     // Handle the issue of foreground/background terminal process
                     // groups.
                     // Wait for child to finish
                     int status;
-                    waitpid(child_pid, &status, WUNTRACED);
+                    if (waitpid(child_pid, &status, WUNTRACED) == -1) {
+                        perror("waitpid");
+                    }
 
                     // If the child was stopped, reset the shell as foreground process
                     if (WIFSTOPPED(status)) {
-                        tcsetpgrp(STDIN_FILENO, getpid());
+                        if (tcsetpgrp(STDIN_FILENO, getpid()) == -1) {
+                            perror("tcsetpgrp");
+                        }
+
                         // Add the stopped job to the job list
-                        job_list_add(&jobs, child_pid, tokens.data[0], STOPPED);
+                        if (job_list_add(&jobs, child_pid, tokens.data[0], STOPPED) == -1) {
+                            perror("job_list_add");
+                        }
                     }
 
                     // Restore the shell itself as the foreground process group
-                    tcsetpgrp(STDIN_FILENO, getpid());
+                    if (tcsetpgrp(STDIN_FILENO, getpid()) == -1) {
+                        perror("tcsetpgrp");
+                    }
                 }
             }
         }

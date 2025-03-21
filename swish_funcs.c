@@ -26,14 +26,14 @@ int tokenize(char *s, strvec_t *tokens) {
 
     // Check if there are any tokens found
     if (word == NULL) {
-        fprintf(stderr, "input string is empty");
+        perror("input string is empty");
         return -1;
     }
 
     // Add each token to the 'tokens' parameter (a string vector)
     while (word != NULL) {
         if (strvec_add(tokens, word) == -1) {
-            perror("failure to tokenize");
+            perror("failure to tokenize: strvec_add");
             // Return -1 on error
             return -1;
         }
@@ -84,7 +84,9 @@ int run_command(strvec_t *tokens) {
             }
         }
 
-        close(input_fd);
+        if (close(input_fd) == -1) {
+            perror("Failed to close input file");
+        }
     }
 
     // Handle output redirection (overwrite)
@@ -105,7 +107,9 @@ int run_command(strvec_t *tokens) {
             return -1;
         }
 
-        close(output_fd);
+        if (close(output_fd) == -1) {
+            perror("Failed to output input file");
+        }
     }
 
     // Handle output redirection (append)
@@ -126,7 +130,9 @@ int run_command(strvec_t *tokens) {
             return -1;
         }
 
-        close(output_fd);
+        if (close(output_fd) == -1) {
+            perror("Failed to output input file");
+        }
     }
 
     // Restore the signal handlers for SIGTTOU and SIGTTIN to their defaults.
@@ -151,6 +157,10 @@ int run_command(strvec_t *tokens) {
         if (i == in_index || i == out_index || i == append_index) {
             i++;
         } else {
+            if (strvec_get(tokens, i) == NULL) {
+                perror("Build argument list: strvec_get");
+                return -1;
+            }
             args[arg_count++] = strvec_get(tokens, i);
         }
     }
@@ -214,7 +224,10 @@ int resume_job(strvec_t *tokens, job_list_t *jobs, int is_foreground) {
 
         // If the job has terminated (not stopped), remove it from the 'jobs' list
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
-            job_list_remove(jobs, job_index);
+            if (job_list_remove(jobs, job_index) == -1) {
+                perror("job_list_remove");
+                return -1;
+            }
         }
 
         // Return terminal control to the shell
