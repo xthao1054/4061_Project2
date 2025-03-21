@@ -23,7 +23,9 @@ int main(int argc, char **argv) {
         perror("sigfillset");
         return 1;
     }
+
     sac.sa_flags = 0;
+
     if (sigaction(SIGTTIN, &sac, NULL) == -1 || sigaction(SIGTTOU, &sac, NULL) == -1) {
         perror("sigaction");
         return 1;
@@ -50,10 +52,12 @@ int main(int argc, char **argv) {
             job_list_free(&jobs);
             return 1;
         }
+
         if (tokens.length == 0) {
             printf("%s", PROMPT);
             continue;
         }
+
         const char *first_token = strvec_get(&tokens, 0);
 
         if (strcmp(first_token, "pwd") == 0) {
@@ -144,7 +148,6 @@ int main(int argc, char **argv) {
             pid_t child_pid = fork();
             if (child_pid == -1) {
                 perror("fork");
-
             } else if (child_pid == 0) {
                 // Child Process
                 if (is_background) {
